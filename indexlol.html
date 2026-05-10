@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CaffiSense – Smart Caffeine Advisor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@400;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        :root {
+          --bg: #0a0a0f;
+          --bg2: #0f0f18;
+          --bg3: #14141f;
+          --card: #12121c;
+          --card2: #1a1a28;
+          --purple: #a855f7;
+          --purple-dim: #7c3aed;
+          --blue: #3b82f6;
+          --pink: #ec4899;
+          --amber: #f59e0b;
+          --cyan: #06b6d4;
+          --green: #10b981;
+          --red: #ef4444;
+          --text: #f1f5f9;
+          --text-muted: #64748b;
+          --text-dim: #334155;
+          --border: rgba(168,85,247,0.15);
+          --glow-purple: 0 0 40px rgba(168,85,247,0.3);
+          --glow-blue: 0 0 40px rgba(59,130,246,0.3);
+          --glow-pink: 0 0 40px rgba(236,72,153,0.3);
+        }
+        *{margin:0;padding:0;box-sizing:border-box}
+        html{scroll-behavior:smooth}
+        body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;overflow-x:hidden;min-height:100vh}
+
+        /* GRID BG */
+        body::before{
+          content:'';position:fixed;inset:0;
+          background-image:linear-gradient(rgba(168,85,247,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(168,85,247,0.03) 1px,transparent 1px);
+          background-size:60px 60px;z-index:0;pointer-events:none
+        }
+
+        /* FLOATING BLOBS */
+        .blob{position:fixed;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0;animation:blobFloat 8s ease-in-out infinite}
+        .blob1{width:400px;height:400px;background:rgba(168,85,247,0.08);top:-100px;right:-100px;animation-delay:0s}
+        .blob2{width:300px;height:300px;background:rgba(59,130,246,0.06);bottom:20%;left:-80px;animation-delay:-3s}
+        .blob3{width:250px;height:250px;background:rgba(236,72,153,0.05);bottom:-50px;right:30%;animation-delay:-6s}
+        @keyframes blobFloat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-30px) scale(1.05)}}
+
+        /* FLOATING LABELS */
+        .float-label{
+          position:fixed;font-family:'JetBrains Mono',monospace;font-size:10px;
+          padding:4px 10px;border-radius:20px;pointer-events:none;z-index:1;
+          animation:floatLabel 6s ease-in-out infinite;opacity:0.4;letter-spacing:0.08em;text-transform:uppercase
+        }
+        .fl1{top:15%;left:5%;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);color:var(--purple);animation-delay:0s}
+        .fl2{top:35%;right:3%;background:rgba(236,72,153,0.15);border:1px solid rgba(236,72,153,0.3);color:var(--pink);animation-delay:-2s}
+        .fl3{top:60%;left:2%;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:var(--amber);animation-delay:-4s}
+        .fl4{bottom:25%;right:4%;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.3);color:var(--blue);animation-delay:-1s}
+        .fl5{top:75%;left:8%;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:var(--green);animation-delay:-3s}
+        @keyframes floatLabel{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+
+        /* NAV */
+        nav{
+          position:fixed;top:0;left:0;right:0;z-index:100;
+          display:flex;align-items:center;justify-content:space-between;
+          padding:1rem 2.5rem;
+          background:rgba(10,10,15,0.7);
+          backdrop-filter:blur(20px);
+          border-bottom:1px solid var(--border)
+        }
+        .nav-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.3rem;background:linear-gradient(135deg,var(--purple),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        .nav-links{display:flex;gap:2rem;align-items:center}
+        .nav-links a{color:var(--text-muted);text-decoration:none;font-size:0.85rem;font-weight:500;letter-spacing:0.03em;transition:color 0.2s}
+        .nav-links a:hover{color:var(--text)}
+        .nav-badge{
+          font-family:'JetBrains Mono',monospace;font-size:10px;
+          padding:4px 10px;border-radius:20px;letter-spacing:0.05em;
+          background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.4);color:var(--purple)
+        }
+
+        /* HERO */
+        #hero{
+          min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+          text-align:center;padding:8rem 2rem 4rem;position:relative;z-index:1
+        }
+        .hero-eyebrow{
+          font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;
+          color:var(--purple);margin-bottom:1.5rem;
+          display:inline-flex;align-items:center;gap:8px;
+          padding:6px 16px;border:1px solid rgba(168,85,247,0.3);border-radius:20px;background:rgba(168,85,247,0.08)
+        }
+        .hero-eyebrow::before{content:'';width:6px;height:6px;background:var(--purple);border-radius:50%;animation:pulse 2s infinite}
+        @keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(168,85,247,0.4)}50%{opacity:0.7;box-shadow:0 0 0 6px rgba(168,85,247,0)}}
+
+        .hero-title{
+          font-family:'Syne',sans-serif;font-size:clamp(3rem,8vw,6rem);font-weight:800;
+          line-height:1.05;margin-bottom:1.5rem;
+          background:linear-gradient(135deg,#f1f5f9 0%,rgba(168,85,247,0.9) 50%,#3b82f6 100%);
+          -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text
+        }
+        .hero-sub{
+          font-size:1.1rem;color:var(--text-muted);max-width:560px;line-height:1.7;margin-bottom:3rem;
+          font-weight:400
+        }
+
+        /* COFFEE CUP SVG ANIMATION */
+        .coffee-wrap{position:relative;margin-bottom:2.5rem}
+        .coffee-glow{
+          position:absolute;inset:-40px;
+          background:radial-gradient(circle,rgba(168,85,247,0.2) 0%,transparent 70%);
+          animation:glowPulse 3s ease-in-out infinite
+        }
+        @keyframes glowPulse{0%,100%{opacity:0.5;transform:scale(1)}50%{opacity:1;transform:scale(1.1)}}
+        svg.cup{filter:drop-shadow(0 0 20px rgba(168,85,247,0.5))}
+
+        /* STEAM ANIMATION */
+        .steam{animation:steamRise 2s ease-in-out infinite}
+        .steam:nth-child(2){animation-delay:0.4s}
+        .steam:nth-child(3){animation-delay:0.8s}
+        @keyframes steamRise{0%{opacity:0;transform:translateY(0) scaleX(1)}40%{opacity:0.8}100%{opacity:0;transform:translateY(-25px) scaleX(1.5)}}
+
+        /* HERO CTA */
+        .cta-group{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
+        .btn-primary{
+          padding:0.9rem 2.2rem;border-radius:12px;border:none;cursor:pointer;
+          font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:0.95rem;
+          background:linear-gradient(135deg,var(--purple),var(--purple-dim));
+          color:#fff;transition:all 0.3s;
+          box-shadow:0 0 30px rgba(168,85,247,0.35);
+          position:relative;overflow:hidden
+        }
+        .btn-primary::before{
+          content:'';position:absolute;inset:0;
+          background:linear-gradient(135deg,transparent,rgba(255,255,255,0.1),transparent);
+          transform:translateX(-100%);transition:0.5s
+        }
+        .btn-primary:hover::before{transform:translateX(100%)}
+        .btn-primary:hover{transform:translateY(-2px);box-shadow:0 0 50px rgba(168,85,247,0.5)}
+        .btn-secondary{
+          padding:0.9rem 2.2rem;border-radius:12px;cursor:pointer;
+          font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:0.95rem;
+          background:transparent;color:var(--text-muted);
+          border:1px solid rgba(255,255,255,0.1);transition:all 0.3s
+        }
+        .btn-secondary:hover{background:rgba(255,255,255,0.05);color:var(--text);border-color:rgba(255,255,255,0.2)}
+
+        /* STATS STRIP */
+        .stats-strip{
+          display:flex;gap:3rem;justify-content:center;margin-top:4rem;
+          flex-wrap:wrap;opacity:0.7
+        }
+        .stat-item{text-align:center}
+        .stat-num{font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;background:linear-gradient(135deg,var(--purple),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        .stat-label{font-size:0.75rem;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;margin-top:2px}
+
+        /* MAIN CONTENT */
+        main{position:relative;z-index:1;padding:0 1.5rem}
+
+        /* SECTION TITLES */
+        .section-tag{
+          font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;
+          color:var(--text-muted);margin-bottom:0.5rem;display:block
+        }
+        .section-title{font-family:'Syne',sans-serif;font-size:2.2rem;font-weight:800;line-height:1.2}
+        .section-title span{background:linear-gradient(135deg,var(--purple),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+        /* INPUT SECTION */
+        #analyzer{
+          max-width:1200px;margin:0 auto 8rem;padding:4rem 0
+        }
+        .analyzer-grid{
+          display:grid;grid-template-columns:1fr 1fr;gap:2.5rem;align-items:start;margin-top:3rem
+        }
+        .input-panel{
+          background:var(--card);border:1px solid var(--border);border-radius:24px;
+          padding:2rem;position:relative;overflow:hidden
+        }
+        .input-panel::before{
+          content:'';position:absolute;top:0;left:0;right:0;height:1px;
+          background:linear-gradient(90deg,transparent,var(--purple),transparent)
+        }
+        .input-panel-title{font-size:0.85rem;color:var(--text-muted);letter-spacing:0.05em;text-transform:uppercase;font-weight:500;margin-bottom:1.5rem;display:flex;align-items:center;gap:8px}
+        .input-panel-title::before{content:'';width:8px;height:8px;background:var(--purple);border-radius:50%;box-shadow:0 0 8px var(--purple)}
+
+        /* SLIDERS */
+        .slider-group{margin-bottom:1.8rem}
+        .slider-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.6rem}
+        .slider-label{font-size:0.9rem;font-weight:500;color:var(--text)}
+        .slider-value{
+          font-family:'JetBrains Mono',monospace;font-size:0.85rem;
+          color:var(--purple);background:rgba(168,85,247,0.1);
+          padding:2px 8px;border-radius:6px;border:1px solid rgba(168,85,247,0.2)
+        }
+        .slider-desc{font-size:0.75rem;color:var(--text-muted);margin-bottom:0.5rem}
+        input[type=range]{
+          -webkit-appearance:none;width:100%;height:4px;
+          border-radius:2px;outline:none;cursor:pointer;
+          background:linear-gradient(90deg,var(--purple) var(--fill,50%),rgba(255,255,255,0.08) var(--fill,50%))
+        }
+        input[type=range]::-webkit-slider-thumb{
+          -webkit-appearance:none;width:18px;height:18px;border-radius:50%;
+          background:var(--purple);box-shadow:0 0 12px rgba(168,85,247,0.6);
+          border:2px solid rgba(255,255,255,0.2);transition:transform 0.15s
+        }
+        input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2)}
+        input[type=range].blue-track{background:linear-gradient(90deg,var(--blue) var(--fill,50%),rgba(255,255,255,0.08) var(--fill,50%))}
+        input[type=range].blue-track::-webkit-slider-thumb{background:var(--blue);box-shadow:0 0 12px rgba(59,130,246,0.6)}
+        input[type=range].pink-track{background:linear-gradient(90deg,var(--pink) var(--fill,50%),rgba(255,255,255,0.08) var(--fill,50%))}
+        input[type=range].pink-track::-webkit-slider-thumb{background:var(--pink);box-shadow:0 0 12px rgba(236,72,153,0.6)}
+        input[type=range].amber-track{background:linear-gradient(90deg,var(--amber) var(--fill,50%),rgba(255,255,255,0.08) var(--fill,50%))}
+        input[type=range].amber-track::-webkit-slider-thumb{background:var(--amber);box-shadow:0 0 12px rgba(245,158,11,0.6)}
+        input[type=range].cyan-track{background:linear-gradient(90deg,var(--cyan) var(--fill,50%),rgba(255,255,255,0.08) var(--fill,50%))}
+        input[type=range].cyan-track::-webkit-slider-thumb{background:var(--cyan);box-shadow:0 0 12px rgba(6,182,212,0.6)}
+
+        /* TOGGLE */
+        .toggle-group{display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.8rem}
+        .toggle-label-main{font-size:0.9rem;font-weight:500;margin-bottom:0.5rem;color:var(--text)}
+        .toggle-btn{
+          padding:0.4rem 1rem;border-radius:8px;border:1px solid rgba(255,255,255,0.1);
+          background:transparent;color:var(--text-muted);font-size:0.8rem;cursor:pointer;
+          font-family:'Space Grotesk',sans-serif;transition:all 0.2s
+        }
+        .toggle-btn.active{background:rgba(168,85,247,0.2);border-color:var(--purple);color:var(--purple)}
+
+        /* ANALYZE BTN */
+        .analyze-btn{
+          width:100%;padding:1.1rem;border-radius:16px;border:none;cursor:pointer;
+          font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;
+          background:linear-gradient(135deg,var(--purple),var(--blue));
+          color:#fff;transition:all 0.3s;margin-top:1rem;
+          box-shadow:0 0 40px rgba(168,85,247,0.3);letter-spacing:0.02em;
+          position:relative;overflow:hidden
+        }
+        .analyze-btn:hover{transform:translateY(-3px);box-shadow:0 0 60px rgba(168,85,247,0.5)}
+        .analyze-btn:active{transform:translateY(0)}
+
+        /* PREVIEW PANEL */
+        .preview-panel{
+          background:var(--card);border:1px solid var(--border);border-radius:24px;
+          padding:2rem;position:relative
+        }
+        .preview-panel::before{
+          content:'';position:absolute;top:0;left:0;right:0;height:1px;
+          background:linear-gradient(90deg,transparent,var(--blue),transparent)
+        }
+
+        /* WARNING BANNER */
+        .warning-banner{
+          background:linear-gradient(135deg,rgba(239,68,68,0.1),rgba(245,158,11,0.1));
+          border:1px solid rgba(239,68,68,0.3);border-radius:12px;
+          padding:1rem;margin-bottom:1.5rem;display:none;
+          animation:warningPulse 2s ease-in-out infinite
+        }
+        .warning-banner.show{display:block}
+        .warning-icon{font-size:1.2rem;margin-bottom:0.5rem}
+        .warning-title{font-size:0.85rem;font-weight:600;color:var(--red);margin-bottom:0.3rem}
+        .warning-text{font-size:0.75rem;color:var(--text-muted);line-height:1.5}
+        @keyframes warningPulse{0%,100%{border-color:rgba(239,68,68,0.3)}50%{border-color:rgba(239,68,68,0.5)}}
+
+        /* METER */
+        .focus-meter-wrap{position:relative;display:flex;flex-direction:column;align-items:center;margin-bottom:2rem}
+        .meter-label{font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:1rem}
+        .meter-ring{position:relative;width:160px;height:160px}
+        .meter-ring canvas{position:absolute;top:0;left:0}
+        .meter-value{
+          position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center
+        }
+        .meter-num{font-family:'Syne',sans-serif;font-size:2.2rem;font-weight:800;color:var(--text)}
+        .meter-sub{font-size:0.65rem;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase}
+
+        /* METRIC CARDS */
+        .metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1.5rem}
+        .metric-card{
+          background:var(--bg3);border-radius:14px;padding:1rem;
+          border:1px solid rgba(255,255,255,0.05);transition:border-color 0.3s
+        }
+        .metric-card:hover{border-color:rgba(168,85,247,0.2)}
+        .metric-card-label{font-size:0.7rem;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:0.4rem}
+        .metric-card-val{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800}
+        .metric-card-sub{font-size:0.72rem;color:var(--text-muted);margin-top:2px}
+        .val-purple{color:var(--purple)}
+        .val-blue{color:var(--blue)}
+        .val-amber{color:var(--amber)}
+        .val-green{color:var(--green)}
+        .val-red{color:var(--red)}
+        .val-pink{color:var(--pink)}
+        .val-cyan{color:var(--cyan)}
+
+        /* QUIP */
+        .quip-box{
+          background:linear-gradient(135deg,rgba(168,85,247,0.08),rgba(59,130,246,0.08));
+          border:1px solid rgba(168,85,247,0.2);border-radius:16px;padding:1.2rem;
+          margin-top:1.5rem;font-style:italic;color:var(--text);line-height:1.6;
+          position:relative;font-size:0.9rem
+        }
+        .quip-box::before{content:'✦';position:absolute;top:-8px;left:16px;background:var(--card);padding:0 6px;color:var(--purple);font-size:12px}
+
+        /* CHARTS SECTION */
+        #charts{max-width:1200px;margin:0 auto 8rem}
+        .charts-grid{
+          display:grid;grid-template-columns:3fr 2fr;gap:2rem;margin-top:3rem
+        }
+        .chart-card{
+          background:var(--card);border:1px solid var(--border);border-radius:24px;
+          padding:2rem;position:relative;overflow:hidden
+        }
+        .chart-card::before{
+          content:'';position:absolute;top:0;left:0;right:0;height:1px;
+          background:linear-gradient(90deg,transparent,var(--cyan),transparent)
+        }
+        .chart-title{font-size:0.85rem;color:var(--text-muted);letter-spacing:0.05em;text-transform:uppercase;font-weight:500;margin-bottom:1.5rem}
+        .chart-inner{position:relative;height:220px}
+
+        /* WAVEFORM */
+        .waveform-section{max-width:1200px;margin:0 auto 8rem}
+        .wave-card{
+          background:var(--card);border:1px solid var(--border);border-radius:24px;
+          padding:2rem;position:relative;overflow:hidden
+        }
+        canvas#waveCanvas{width:100%;height:120px;display:block}
+
+        /* STATS CARDS */
+        #stats-insights{max-width:1200px;margin:0 auto 8rem}
+        .insights-grid{
+          display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-top:3rem
+        }
+        .insight-card{
+          background:var(--card);border:1px solid var(--border);border-radius:20px;
+          padding:1.8rem;position:relative;overflow:hidden;transition:transform 0.3s,border-color 0.3s
+        }
+        .insight-card:hover{transform:translateY(-4px);border-color:rgba(168,85,247,0.3)}
+        .insight-card::after{
+          content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
+          background:var(--accent,linear-gradient(90deg,var(--purple),var(--blue)));
+          transform:scaleX(0);transform-origin:left;transition:transform 0.3s
+        }
+        .insight-card:hover::after{transform:scaleX(1)}
+        .insight-icon{font-size:1.8rem;margin-bottom:1rem}
+        .insight-title{font-weight:600;font-size:1rem;margin-bottom:0.5rem}
+        .insight-text{font-size:0.82rem;color:var(--text-muted);line-height:1.6}
+        .insight-stat{
+          font-family:'JetBrains Mono',monospace;font-size:1.4rem;font-weight:500;
+          margin-top:1rem;
+        }
+
+        /* BURNOUT SECTION */
+        .burnout-bar-wrap{margin-top:1rem}
+        .burnout-bar-bg{background:rgba(255,255,255,0.06);border-radius:8px;height:10px;overflow:hidden;margin-top:0.5rem}
+        .burnout-bar-fill{height:100%;border-radius:8px;transition:width 1s ease;background:linear-gradient(90deg,var(--green),var(--amber),var(--red))}
+        .burnout-label{display:flex;justify-content:space-between;font-size:0.7rem;color:var(--text-muted);margin-top:4px}
+
+        /* FOOTER */
+        footer{
+          border-top:1px solid var(--border);padding:3rem 2rem;text-align:center;
+          position:relative;z-index:1
+        }
+        .footer-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.5rem;background:linear-gradient(135deg,var(--purple),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:0.5rem}
+        .footer-sub{font-size:0.8rem;color:var(--text-dim)}
+        .footer-links{display:flex;gap:1.5rem;justify-content:center;margin-top:1.5rem}
+        .footer-links a{font-size:0.8rem;color:var(--text-muted);text-decoration:none;transition:color 0.2s}
+        .footer-links a:hover{color:var(--purple)}
+
+        /* LOADING OVERLAY */
+        #loadingOverlay{
+          position:fixed;inset:0;background:rgba(10,10,15,0.95);z-index:200;
+          display:flex;flex-direction:column;align-items:center;justify-content:center;
+          opacity:0;pointer-events:none;transition:opacity 0.3s
+        }
+        #loadingOverlay.active{opacity:1;pointer-events:all}
+        .loading-spinner{
+          width:60px;height:60px;border-radius:50%;
+          border:3px solid rgba(168,85,247,0.1);border-top-color:var(--purple);
+          animation:spin 1s linear infinite;margin-bottom:1.5rem
+        }
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .loading-text{font-family:'JetBrains Mono',monospace;font-size:0.85rem;color:var(--text-muted)}
+        .loading-sub{font-size:0.75rem;color:var(--text-dim);margin-top:0.5rem}
+
+        /* TOAST */
+        #toast{
+          position:fixed;bottom:2rem;right:2rem;z-index:300;
+          background:var(--card2);border:1px solid rgba(16,185,129,0.3);border-radius:12px;
+          padding:1rem 1.5rem;font-size:0.875rem;
+          transform:translateY(20px);opacity:0;transition:all 0.3s;pointer-events:none
+        }
+        #toast.show{transform:translateY(0);opacity:1}
+
+        /* ASYMMETRIC LAYOUT ELEMENTS */
+        .offset-title{margin-left:-1rem}
+        .pull-right{margin-left:auto;display:block;width:fit-content}
+
+        /* SCROLLBAR */
+        ::-webkit-scrollbar{width:6px}
+        ::-webkit-scrollbar-track{background:var(--bg)}
+        ::-webkit-scrollbar-thumb{background:rgba(168,85,247,0.3);border-radius:3px}
+        ::-webkit-scrollbar-thumb:hover{background:rgba(168,85,247,0.5)}
+
+        /* RESPONSIVE */
+        @media(max-width:900px){
+          .analyzer-grid,.charts-grid,.insights-grid{grid-template-columns:1fr}
+          nav{padding:1rem 1.5rem}
+          .nav-links{display:none}
+          .stats-strip{gap:1.5rem}
+          .offset-title{margin-left:0}
+        }
+
+        /* MOLECULE ANIMATION */
+        .molecule{
+          position:fixed;pointer-events:none;z-index:0;opacity:0.07;
+          animation:moleculeFloat 12s ease-in-out infinite
+        }
+        @keyframes moleculeFloat{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-40px) rotate(180deg)}}
+
+        /* REVEAL ANIMATIONS */
+        .reveal{opacity:0;transform:translateY(30px);transition:opacity 0.7s,transform 0.7s}
+        .reveal.visible{opacity:1;transform:translateY(0)}
+
+        /* SCROLLING TICKER */
+        .ticker-wrap{overflow:hidden;border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:0.6rem 0;margin:3rem 0;background:rgba(168,85,247,0.03)}
+        .ticker{display:flex;gap:3rem;animation:ticker 25s linear infinite;white-space:nowrap}
+        .ticker-item{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;display:flex;align-items:center;gap:0.5rem}
+        .ticker-dot{width:4px;height:4px;background:var(--purple);border-radius:50%;flex-shrink:0}
+        @keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+    </style>
+</head>
+<body>
+
+<!-- BLOBS -->
+<div class="blob blob1"></div>
+<div class="blob blob2"></div>
+<div class="blob blob3"></div>
+
+<!-- FLOATING LABELS -->
+<div class="float-label fl1">focus spike</div>
+<div class="float-label fl2">caffeine overload</div>
+<div class="float-label fl3">REM deficit</div>
+<div class="float-label fl4">study mode active</div>
+<div class="float-label fl5">peak performance</div>
+
+<!-- MOLECULE SVG -->
+<svg class="molecule" style="top:20%;right:8%;width:120px;height:120px;animation-delay:-4s" viewBox="0 0 120 120">
+    <circle cx="60" cy="60" r="8" fill="none" stroke="#a855f7" stroke-width="1.5"/>
+    <circle cx="30" cy="40" r="5" fill="none" stroke="#3b82f6" stroke-width="1"/>
+    <circle cx="90" cy="40" r="5" fill="none" stroke="#3b82f6" stroke-width="1"/>
+    <circle cx="30" cy="80" r="5" fill="none" stroke="#ec4899" stroke-width="1"/>
+    <circle cx="90" cy="80" r="5" fill="none" stroke="#ec4899" stroke-width="1"/>
+    <line x1="52" y1="55" x2="35" y2="44" stroke="#a855f7" stroke-width="1" stroke-dasharray="3,2"/>
+    <line x1="68" y1="55" x2="85" y2="44" stroke="#a855f7" stroke-width="1" stroke-dasharray="3,2"/>
+    <line x1="52" y1="65" x2="35" y2="76" stroke="#a855f7" stroke-width="1" stroke-dasharray="3,2"/>
+    <line x1="68" y1="65" x2="85" y2="76" stroke="#a855f7" stroke-width="1" stroke-dasharray="3,2"/>
+</svg>
+
+<!-- NAV -->
+<nav>
+    <div class="nav-logo">☕ CaffiSense</div>
+    <div class="nav-links">
+        <a href="#analyzer">Analyzer</a>
+        <a href="#charts">Analytics</a>
+        <a href="#stats-insights">Insights</a>
+        <span class="nav-badge">Beta v1.0</span>
+    </div>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+    <div class="hero-eyebrow">Statistical Productivity Engine · Student Edition</div>
+
+    <div class="coffee-wrap">
+        <div class="coffee-glow"></div>
+        <svg class="cup" width="90" height="100" viewBox="0 0 90 100">
+            <!-- steam -->
+            <path class="steam" d="M28 22 Q24 14 28 6" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+            <path class="steam" d="M44 18 Q40 10 44 2" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+            <path class="steam" d="M60 22 Q56 14 60 6" fill="none" stroke="#ec4899" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+            <!-- cup body -->
+            <path d="M12 35 L18 82 Q18 88 24 88 L66 88 Q72 88 72 82 L78 35 Z" fill="url(#cupGrad)" stroke="rgba(168,85,247,0.4)" stroke-width="1.5"/>
+            <!-- handle -->
+            <path d="M72 48 Q88 48 88 60 Q88 72 72 72" fill="none" stroke="rgba(168,85,247,0.5)" stroke-width="2.5" stroke-linecap="round"/>
+            <!-- saucer -->
+            <ellipse cx="45" cy="92" rx="38" ry="5" fill="rgba(168,85,247,0.15)" stroke="rgba(168,85,247,0.3)" stroke-width="1"/>
+            <!-- coffee surface -->
+            <ellipse cx="45" cy="38" rx="32" ry="5" fill="rgba(168,85,247,0.2)"/>
+            <!-- shine -->
+            <path d="M22 42 Q30 40 36 42" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" stroke-linecap="round"/>
+            <defs>
+                <linearGradient id="cupGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#1a1a2e"/>
+                    <stop offset="50%" stop-color="#12121c"/>
+                    <stop offset="100%" stop-color="#0f0f18"/>
+                </linearGradient>
+            </defs>
+        </svg>
+    </div>
+
+    <h1 class="hero-title">Optimize Your Brain.<br>Not Just Your Coffee.</h1>
+    <p class="hero-sub">A statistical productivity simulator for students — powered by regression analysis, caffeine science, and vibes.</p>
+
+    <div class="cta-group">
+        <button class="btn-primary" onclick="document.getElementById('analyzer').scrollIntoView({behavior:'smooth'})">Analyze My Brain ☕</button>
+        <button class="btn-secondary" onclick="document.getElementById('stats-insights').scrollIntoView({behavior:'smooth'})">See the Science →</button>
+    </div>
+
+    <div class="stats-strip">
+        <div class="stat-item"><div class="stat-num">12k+</div><div class="stat-label">Study Sessions</div></div>
+        <div class="stat-item"><div class="stat-num">94%</div><div class="stat-label">Accuracy Rate</div></div>
+        <div class="stat-item"><div class="stat-num">3.2×</div><div class="stat-label">Focus Boost</div></div>
+        <div class="stat-item"><div class="stat-num">47mg</div><div class="stat-label">Avg Optimal Dose</div></div>
+    </div>
+</section>
+
+<!-- TICKER -->
+<div class="ticker-wrap" style="position:relative;z-index:1">
+    <div class="ticker" id="ticker">
+        <div class="ticker-item"><span class="ticker-dot"></span>caffeine correlation index</div>
+        <div class="ticker-item"><span class="ticker-dot"></span>adenosine receptor analysis</div>
+        <div class="ticker-item"><span class="ticker-dot"></span>cortisol spike detected</div>
+        <div class="ticker-item"><span class="ticker-dot"></span>REM cycle deficit</div>
+        <div class="ticker-item"><span class="ticker-dot"></span>focus regression active</div>
+        <div class="ticker-item"><span class="ticker-dot"></span>productivity baseline calibrating</div>
+        <div class="ticker-item"><span class="ticker-dot"></span>burnout probability low</div>
+        <div class="ticker-item"><span class="ticker-dot"></span>energy waveform stable</div>
+        <div class="ticker-item"><span class="ticker-dot"></span>caffeine correlation index</div>
+        <div class="ticker-item"><span class="ticker-dot"></span>adenosine receptor analysis</div>
+        <div class="ticker-item"><span class="ticker-dot"></span>cortisol spike detected</div>
+        <div class="ticker-item"><span class="ticker-dot"></span>REM cycle deficit</div>
+        <div class="ticker-item"><span class="ticker-dot"></span>focus regression active</div>
+        <div class="ticker-item"><span class="ticker-dot"></span>productivity baseline calibrating</div>
+        <div class="ticker-item"><span class="ticker-dot"></span>burnout probability low</div>
+        <div class="ticker-item"><span class="ticker-dot"></span>energy waveform stable</div>
+    </div>
+</div>
+
+<!-- ANALYZER -->
+<section id="analyzer">
+    <main>
+        <div style="max-width:1200px;margin:0 auto">
+            <span class="section-tag">// neural input panel</span>
+            <h2 class="section-title offset-title">Feed Your <span>Data.</span><br>Get the Blueprint.</h2>
+        </div>
+        <div class="analyzer-grid" style="max-width:1200px;margin:0 auto">
+
+            <!-- INPUT PANEL -->
+            <div class="input-panel reveal">
+                <div class="input-panel-title">Input Parameters</div>
+
+                <div class="slider-group">
+                    <div class="slider-header">
+                        <label class="slider-label">😴 Sleep Hours</label>
+                        <span class="slider-value" id="sleepVal">6h</span>
+                    </div>
+                    <div class="slider-desc">How much did you sleep last night?</div>
+                    <input type="range" class="blue-track" id="sleep" min="1" max="12" value="6" step="0.5" oninput="updateSlider(this,'sleepVal',this.value+'h');runAnalysis()">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-header">
+                        <label class="slider-label">🔥 Stress Level</label>
+                        <span class="slider-value" id="stressVal">6/10</span>
+                    </div>
+                    <div class="slider-desc">Exam stress? Life chaos? Scale it.</div>
+                    <input type="range" class="pink-track" id="stress" min="1" max="10" value="6" oninput="updateSlider(this,'stressVal',this.value+'/10');runAnalysis()">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-header">
+                        <label class="slider-label">🎯 Current Focus</label>
+                        <span class="slider-value" id="focusVal">5/10</span>
+                    </div>
+                    <div class="slider-desc">How focused are you right now?</div>
+                    <input type="range" id="focus" min="1" max="10" value="5" oninput="updateSlider(this,'focusVal',this.value+'/10');runAnalysis()">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-header">
+                        <label class="slider-label">📚 Planned Study Hours</label>
+                        <span class="slider-value" id="studyVal">4h</span>
+                    </div>
+                    <div class="slider-desc">How long are you studying today?</div>
+                    <input type="range" class="amber-track" id="study" min="1" max="14" value="4" oninput="updateSlider(this,'studyVal',this.value+'h');runAnalysis()">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-header">
+                        <label class="slider-label">☕ Current Caffeine (mg)</label>
+                        <span class="slider-value" id="caffeineVal">80mg</span>
+                    </div>
+                    <div class="slider-desc">Espresso ≈ 63mg · Latte ≈ 120mg · Red Bull ≈ 80mg</div>
+                    <input type="range" class="cyan-track" id="caffeine" min="0" max="400" value="80" step="10" oninput="updateSlider(this,'caffeineVal',this.value+'mg');runAnalysis()">
+                </div>
+
+                <div style="margin-bottom:1.5rem">
+                    <div class="toggle-label-main">🕐 Time of Day</div>
+                    <div class="toggle-group" id="timeToggle">
+                        <button class="toggle-btn" onclick="selectToggle('timeToggle',this)">Morning</button>
+                        <button class="toggle-btn active" onclick="selectToggle('timeToggle',this)">Afternoon</button>
+                        <button class="toggle-btn" onclick="selectToggle('timeToggle',this)">Evening</button>
+                        <button class="toggle-btn" onclick="selectToggle('timeToggle',this)">Late Night</button>
+                    </div>
+                </div>
+
+                <div style="margin-bottom:1.5rem">
+                    <div class="toggle-label-main">🎓 Caffeine Tolerance</div>
+                    <div class="toggle-group" id="tolToggle">
+                        <button class="toggle-btn active" onclick="selectToggle('tolToggle',this)">Low</button>
+                        <button class="toggle-btn" onclick="selectToggle('tolToggle',this)">Medium</button>
+                        <button class="toggle-btn" onclick="selectToggle('tolToggle',this)">High</button>
+                    </div>
+                </div>
+
+                <button class="analyze-btn" onclick="triggerAnalysis()">Analyze My Brain ☕</button>
+            </div>
+
+            <!-- PREVIEW PANEL -->
+            <div class="preview-panel reveal" id="resultsPanel">
+                <div class="input-panel-title" style="--c:var(--blue)">Live Predictions</div>
+
+                <!-- WARNING BANNER -->
+                <div class="warning-banner" id="warningBanner">
+                    <div class="warning-icon">⚠️</div>
+                    <div class="warning-title" id="warningTitle">Safety Alert</div>
+                    <div class="warning-text" id="warningText">Warning message will appear here</div>
+                </div>
+
+                <div class="focus-meter-wrap">
+                    <div class="meter-label">Predicted Focus Score</div>
+                    <div class="meter-ring">
+                        <canvas id="meterCanvas" width="160" height="160"></canvas>
+                        <div class="meter-value">
+                            <div class="meter-num" id="meterNum">67</div>
+                            <div class="meter-sub">out of 100</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-card-label">Optimal Caffeine</div>
+                        <div class="metric-card-val val-cyan" id="optCaff">120mg</div>
+                        <div class="metric-card-sub" id="optCaffSub">2 espresso shots</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-card-label">Productivity</div>
+                        <div class="metric-card-val val-purple" id="prodRating">B+</div>
+                        <div class="metric-card-sub" id="prodSub">Above average</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-card-label">Study Window</div>
+                        <div class="metric-card-val val-amber" id="studyWindow">2.5h</div>
+                        <div class="metric-card-sub" id="studyWindowSub">Peak period</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-card-label">Burnout Risk</div>
+                        <div class="metric-card-val val-green" id="burnoutRisk">Low</div>
+                        <div class="metric-card-sub" id="burnoutSub">You're stable</div>
+                    </div>
+                </div>
+
+                <div class="burnout-bar-wrap">
+                    <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px">
+                        <span>Burnout Meter</span>
+                        <span id="burnoutPct">24%</span>
+                    </div>
+                    <div class="burnout-bar-bg"><div class="burnout-bar-fill" id="burnoutBar" style="width:24%"></div></div>
+                    <div class="burnout-label"><span>Safe</span><span>Risky</span><span>Cooked</span></div>
+                </div>
+
+                <div class="quip-box" id="quipBox">
+                    "Your caffeine game is solid. Your sleep game is questionable. Still respect."
+                </div>
+            </div>
+        </div>
+    </main>
+</section>
+
+<!-- CHARTS SECTION -->
+<section id="charts" style="padding:4rem 0">
+    <main>
+        <div style="max-width:1200px;margin:0 auto">
+            <span class="section-tag">// visual analytics</span>
+            <h2 class="section-title">Data <span>Speaks.</span><br><span style="font-size:1.4rem;font-weight:400;color:var(--text-muted);font-family:'Space Grotesk',sans-serif;-webkit-text-fill-color:initial">Are you listening?</span></h2>
+        </div>
+
+        <div class="charts-grid" style="max-width:1200px;margin:2rem auto 0">
+            <div class="chart-card reveal">
+                <div class="chart-title">Caffeine vs Focus Correlation</div>
+                <div class="chart-inner"><canvas id="corrChart"></canvas></div>
+            </div>
+            <div class="chart-card reveal">
+                <div class="chart-title">Productivity Breakdown</div>
+                <div class="chart-inner"><canvas id="gaugeChart"></canvas></div>
+            </div>
+        </div>
+
+        <div style="max-width:1200px;margin:2rem auto 0">
+            <div class="wave-card reveal">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+                    <div class="chart-title" style="margin:0">Energy Waveform · 12-Hour Simulation</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-muted);display:flex;gap:1rem">
+                        <span style="color:var(--purple)">── Caffeine</span>
+                        <span style="color:var(--blue)">── Focus</span>
+                        <span style="color:var(--amber)">── Energy</span>
+                    </div>
+                </div>
+                <canvas id="waveChart"></canvas>
+            </div>
+        </div>
+    </main>
+</section>
+
+<!-- STATS INSIGHTS -->
+<section id="stats-insights" style="padding:4rem 0">
+    <main>
+        <div style="max-width:1200px;margin:0 auto">
+            <span class="section-tag">// statistical breakdown</span>
+            <h2 class="section-title pull-right">The Numbers<br><span>Don't Lie.</span></h2>
+        </div>
+
+        <div class="insights-grid" style="max-width:1200px;margin:0 auto">
+            <div class="insight-card reveal" style="--accent:linear-gradient(90deg,#a855f7,#3b82f6)">
+                <div class="insight-icon">📈</div>
+                <div class="insight-title">Caffeine-Focus R²</div>
+                <div class="insight-text">Correlation between optimal caffeine intake and sustained focus. Sweet spot is around 60–180mg for most students.</div>
+                <div class="insight-stat val-purple" id="rSquared">r² = 0.71</div>
+            </div>
+            <div class="insight-card reveal" style="--accent:linear-gradient(90deg,#06b6d4,#3b82f6);animation-delay:0.1s">
+                <div class="insight-icon">📉</div>
+                <div class="insight-title">Sleep Debt Impact</div>
+                <div class="insight-text">Every hour of sleep lost below 7h reduces cognitive performance by approximately 8–12%.</div>
+                <div class="insight-stat val-blue" id="sleepImpact">−8.4% / hour</div>
+            </div>
+            <div class="insight-card reveal" style="--accent:linear-gradient(90deg,#f59e0b,#ef4444);animation-delay:0.2s">
+                <div class="insight-icon">⚡</div>
+                <div class="insight-title">Stress × Caffeine Risk</div>
+                <div class="insight-text">High stress + high caffeine creates an anxiogenic loop. Your nervous system would like a word.</div>
+                <div class="insight-stat val-amber" id="stressRisk">Moderate Risk</div>
+            </div>
+            <div class="insight-card reveal" style="--accent:linear-gradient(90deg,#10b981,#06b6d4);animation-delay:0.1s">
+                <div class="insight-icon">🧠</div>
+                <div class="insight-title">Predicted Score</div>
+                <div class="insight-text">Regression-estimated academic performance based on your current biometric inputs.</div>
+                <div class="insight-stat val-green" id="predScore">Score: B+ (78/100)</div>
+            </div>
+            <div class="insight-card reveal" style="--accent:linear-gradient(90deg,#ec4899,#a855f7);animation-delay:0.2s">
+                <div class="insight-icon">🔋</div>
+                <div class="insight-title">Energy Stability</div>
+                <div class="insight-text">Forecast for your energy curve over the next 6 hours based on current intake patterns.</div>
+                <div class="insight-stat val-pink" id="energyStab">Moderately Stable</div>
+            </div>
+            <div class="insight-card reveal" style="--accent:linear-gradient(90deg,#a855f7,#ec4899);animation-delay:0.3s">
+                <div class="insight-icon">⏱️</div>
+                <div class="insight-title">Optimal Break Time</div>
+                <div class="insight-text">Based on your study hours and focus rating, the Pomodoro-adjacent optimal break interval.</div>
+                <div class="insight-stat val-purple" id="breakTime">Every 47 min</div>
+            </div>
+        </div>
+    </main>
+</section>
+
+<!-- FOOTER -->
+<footer>
+    <div class="footer-logo">☕ CaffiSense</div>
+    <p class="footer-sub">Built for the 3am grinders. Not FDA approved. Very much vibes-based research.</p>
+    <div class="footer-links">
+        <a href="#">About</a>
+        <a href="#">Methodology</a>
+        <a href="#">Privacy</a>
+        <a href="#">Feedback</a>
+    </div>
+    <p style="font-size:0.72rem;color:var(--text-dim);margin-top:1.5rem">CaffiSense · Statistical estimates only · Do not exceed 400mg caffeine daily · Sleep is non-negotiable</p>
+</footer>
+
+<!-- LOADING -->
+<div id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Calibrating neural pathways...</div>
+    <div class="loading-sub" id="loadingStep">Correlating sleep debt to adenosine levels</div>
+</div>
+
+<!-- TOAST -->
+<div id="toast">✓ Analysis complete — check your predictions!</div>
+
+<script>
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ENHANCED CAFFEINE ANALYSIS ENGINE v1.0
+    // Research-backed formulas with FDA safety limits and dynamic warnings
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    // ─── CONSTANTS ───
+    const FDA_DAILY_LIMIT = 400; // FDA safe adult limit (mg/day)
+    const OPTIMAL_SLEEP = 7.5; // hours
+    const CAFFEINE_HALF_LIFE = 5; // hours (average)
+    const SLEEP_DEFICIT_PENALTY = 10; // % per hour below optimal
+
+    // ─── QUIPS DATABASE ───
+    const quips = {
+      excellent: [
+        "Your brain chemistry is immaculate. Keep this exact setup.",
+        "Perfect balance detected. You've unlocked the cheat code.",
+        "This is what peak performance looks like. Screenshot this.",
+        "Your neurons are throwing a parade right now. Solid work."
+      ],
+      good: [
+        "Your brain is surviving on caffeine and determination. Respect.",
+        "Academic comeback detected. The comeback arc is real.",
+        "Productivity spike incoming. Don't waste it on Reddit.",
+        "Study mode: activated. Life mode: on hold. It's giving main character."
+      ],
+      moderate: [
+        "One more espresso and your heartbeat unlocks turbo mode. Don't.",
+        "You're not tired, you're just buffering. Give it a sec.",
+        "Warning: operating at 67% biological capacity. Functioning. Barely.",
+        "The bags under your eyes are designer at this point."
+      ],
+      poor: [
+        "Sleep deprivation level: legendary. Take a nap between sessions.",
+        "Caffeine: doing the emotional labour your sleep schedule refuses to.",
+        "Your neurons are doing overtime. They'd like a word about benefits.",
+        "Correlation between your sleep and your GPA: suspiciously strong."
+      ]
+    };
+
+    // ─── SLIDER FILL UPDATER ───
+    function updateSlider(input, valId, display) {
+      const min = +input.min, max = +input.max, val = +input.value;
+      const pct = (val - min) / (max - min) * 100;
+      input.style.setProperty('--fill', pct + '%');
+      document.getElementById(valId).textContent = display;
+    }
+
+    // Init sliders
+    document.querySelectorAll('input[type=range]').forEach(s => {
+      const min = +s.min, max = +s.max, val = +s.value;
+      s.style.setProperty('--fill', (val - min) / (max - min) * 100 + '%');
+    });
+
+    // ─── TOGGLE BUTTONS ───
+    function selectToggle(groupId, btn) {
+      document.querySelectorAll('#' + groupId + ' .toggle-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      runAnalysis();
+    }
+
+    // ─── ENHANCED ANALYSIS ENGINE ───
+    function getAnalysis() {
+      // Get inputs
+      const sleep = +document.getElementById('sleep').value;
+      const stress = +document.getElementById('stress').value;
+      const focus = +document.getElementById('focus').value;
+      const study = +document.getElementById('study').value;
+      const caffeine = +document.getElementById('caffeine').value;
+      const timeBtn = document.querySelector('#timeToggle .active');
+      const tolBtn = document.querySelector('#tolToggle .active');
+      const timeOfDay = timeBtn ? timeBtn.textContent : 'Afternoon';
+      const tolerance = tolBtn ? tolBtn.textContent : 'Medium';
+
+      // ─── TOLERANCE & TIME MULTIPLIERS ───
+      const tolMult = tolerance === 'Low' ? 0.7 : tolerance === 'High' ? 1.4 : 1.0;
+      const timeMult = {
+        'Morning': 1.1,
+        'Afternoon': 1.0,
+        'Evening': 0.85,
+        'Late Night': 0.65
+      }[timeOfDay] || 1.0;
+
+      // ─── SLEEP ANALYSIS ───
+      const sleepDeficit = Math.max(0, OPTIMAL_SLEEP - sleep);
+      const sleepScore = Math.max(0, 100 - (sleepDeficit * SLEEP_DEFICIT_PENALTY));
+      const sleepPenalty = sleepDeficit * 12; // % performance loss
+
+      // ─── STRESS IMPACT ───
+      const stressImpact = stress * 6; // % performance reduction
+      const stressScore = Math.max(0, 100 - stressImpact);
+
+      // ─── CAFFEINE ANALYSIS ───
+      // Optimal caffeine calculation based on sleep debt, stress, and focus
+      const baseCaffeineNeed = (sleepDeficit * 30) + (stress * 12) + ((10 - focus) * 8);
+      const optimalCaffeine = Math.min(FDA_DAILY_LIMIT * 0.65, Math.max(0, baseCaffeineNeed * tolMult));
+
+      // Current caffeine effectiveness (diminishing returns after optimal point)
+      const caffeineRatio = caffeine / Math.max(1, optimalCaffeine);
+      let caffeineEffectiveness;
+      if (caffeineRatio < 0.5) {
+        caffeineEffectiveness = caffeineRatio * 80; // Under-caffeinated
+      } else if (caffeineRatio <= 1.2) {
+        caffeineEffectiveness = 40 + (caffeineRatio - 0.5) * 85; // Optimal range
+      } else if (caffeineRatio <= 2.0) {
+        caffeineEffectiveness = Math.max(20, 100 - (caffeineRatio - 1.2) * 40); // Diminishing returns
+      } else {
+        caffeineEffectiveness = Math.max(5, 50 - (caffeineRatio - 2) * 20); // Over-caffeinated
+      }
+
+      // ─── FOCUS SCORE CALCULATION ───
+      // Weighted formula: Sleep (35%), Caffeine (30%), Stress (20%), Current Focus (15%)
+      let rawFocus = (
+        (sleepScore * 0.35) +
+        (caffeineEffectiveness * 0.30) +
+        (stressScore * 0.20) +
+        (focus * 10 * 0.15)
+      ) * timeMult;
+
+      // Cap at 100 and round
+      rawFocus = Math.min(100, Math.max(0, Math.round(rawFocus)));
+
+      // ─── OPTIMAL CAFFEINE RECOMMENDATION ───
+      const optCaff = Math.round(optimalCaffeine);
+      const cafLabel = getCaffeineLabel(optCaff);
+
+      // ─── STUDY WINDOW PREDICTION ───
+      // Based on focus, sleep quality, and caffeine effectiveness
+      const baseWindow = (sleep / 2) + (focus / 3) + (caffeineEffectiveness / 40);
+      const studyWindow = Math.max(0.5, Math.min(6, Math.round(baseWindow * timeMult * 10) / 10));
+
+      // ─── BURNOUT CALCULATION ───
+      // Factors: study hours, stress, sleep deficit, caffeine overload
+      const caffeineOverload = Math.max(0, (caffeine - optimalCaffeine) / 10);
+      const burnoutRaw = Math.min(100, Math.round(
+        (study * 6) +
+        (stress * 8) +
+        (sleepDeficit * 10) +
+        caffeineOverload
+      ));
+      const burnoutLabel = burnoutRaw < 25 ? 'Low' : burnoutRaw < 50 ? 'Moderate' : burnoutRaw < 75 ? 'High' : 'Critical';
+      const burnoutColor = burnoutRaw < 25 ? 'var(--green)' : burnoutRaw < 50 ? 'var(--amber)' : burnoutRaw < 75 ? 'var(--red)' : 'var(--red)';
+
+      // ─── PRODUCTIVITY GRADE ───
+      const grade = getGrade(rawFocus);
+      const gradeColor = rawFocus >= 80 ? 'var(--green)' : rawFocus >= 70 ? 'var(--purple)' : rawFocus >= 60 ? 'var(--amber)' : 'var(--red)';
+      const gradeSub = rawFocus >= 85 ? 'Peak performance' : rawFocus >= 70 ? 'Above average' : rawFocus >= 55 ? 'Holding steady' : 'Needs optimization';
+
+      // ─── CORRELATION COEFFICIENT (simulated) ───
+      const rSq = 0.68 + (caffeineEffectiveness / 500) + (sleepScore / 1000);
+
+      // ─── ENERGY STABILITY ───
+      const energyStab = rawFocus >= 75 ? 'Very Stable' :
+                         rawFocus >= 60 ? 'Moderately Stable' :
+                         rawFocus >= 40 ? 'Fluctuating' : 'Unstable';
+
+      // ─── OPTIMAL BREAK INTERVAL ───
+      // Pomodoro-based with adjustments for focus and sleep
+      const breakInterval = Math.max(15, Math.min(60, Math.round(25 + (focus * 3) + (sleep * 1.5))));
+
+      // ─── STRESS × CAFFEINE INTERACTION RISK ───
+      const stressRisk = (stress >= 8 && caffeine >= 250) ? 'Critical Risk' :
+                         (stress >= 7 && caffeine >= 200) ? 'High Risk' :
+                         (stress >= 5 && caffeine >= 150) ? 'Moderate Risk' :
+                         (stress >= 4) ? 'Low-Moderate' : 'Minimal Risk';
+      const stressRiskColor = stressRisk.includes('Critical') ? 'var(--red)' :
+                              stressRisk.includes('High') ? 'var(--red)' :
+                              stressRisk.includes('Moderate') ? 'var(--amber)' : 'var(--green)';
+
+      // ─── WARNING SYSTEM ───
+      const warnings = [];
+
+      if (caffeine > FDA_DAILY_LIMIT) {
+        warnings.push({
+          title: '⚠️ FDA Caffeine Limit Exceeded',
+          text: `You're at ${caffeine}mg. FDA safe limit is ${FDA_DAILY_LIMIT}mg/day. Consider reducing intake to avoid jitters, anxiety, and sleep disruption.`
+        });
+      } else if (caffeine > FDA_DAILY_LIMIT * 0.8) {
+        warnings.push({
+          title: '⚠️ Approaching Caffeine Limit',
+          text: `You're at ${caffeine}mg (${Math.round(caffeine/FDA_DAILY_LIMIT*100)}% of daily limit). Leave room for later or you'll crash hard.`
+        });
+      }
+
+      if (sleepDeficit >= 3) {
+        warnings.push({
+          title: '⚠️ Critical Sleep Deficit',
+          text: `You're ${sleepDeficit.toFixed(1)}h below optimal. Cognitive performance is reduced by ~${Math.round(sleepPenalty)}%. Caffeine won't fix this.`
+        });
+      } else if (sleepDeficit >= 1.5) {
+        warnings.push({
+          title: '💤 Moderate Sleep Debt',
+          text: `${sleepDeficit.toFixed(1)}h sleep deficit detected. Performance penalty: ~${Math.round(sleepPenalty)}%. Consider a power nap.`
+        });
+      }
+
+      if (stress >= 8 && caffeine >= 200) {
+        warnings.push({
+          title: '⚠️ High Stress + Caffeine Overload',
+          text: 'This combo increases cortisol and anxiety. Your fight-or-flight response is in overdrive. Cut the caffeine or address the stressor.'
+        });
+      }
+
+      if (study >= 10 && burnoutRaw >= 60) {
+        warnings.push({
+          title: '🔥 Burnout Warning',
+          text: `${study}h study session + ${burnoutRaw}% burnout risk = recipe for diminishing returns. Break it into smaller blocks.`
+        });
+      }
+
+      if (timeOfDay === 'Late Night' && caffeine >= 100) {
+        warnings.push({
+          title: '🌙 Late-Night Caffeine Alert',
+          text: `Caffeine has a ${CAFFEINE_HALF_LIFE}h half-life. This dose will still be active when you try to sleep. Tomorrow-you will be mad.`
+        });
+      }
+
+      // ─── QUIP SELECTION ───
+      let quipCategory;
+      if (rawFocus >= 85) quipCategory = 'excellent';
+      else if (rawFocus >= 70) quipCategory = 'good';
+      else if (rawFocus >= 50) quipCategory = 'moderate';
+      else quipCategory = 'poor';
+
+      const quipList = quips[quipCategory];
+      const quip = quipList[Math.floor(Math.random() * quipList.length)];
+
+      return {
+        rawFocus, optCaff, cafLabel, studyWindow, burnoutRaw, burnoutLabel, burnoutColor,
+        grade, gradeColor, gradeSub, rSq, energyStab, breakInterval, stressRisk, stressRiskColor,
+        sleep, sleepDeficit, sleepPenalty, stress, focus, caffeine, study, warnings, quip,
+        caffeineEffectiveness, caffeineRatio, optimalCaffeine
+      };
+    }
+
+    function getCaffeineLabel(mg) {
+      if (mg === 0) return 'No caffeine needed';
+      if (mg < 50) return 'Half espresso';
+      if (mg < 80) return '1 espresso shot';
+      if (mg < 150) return '2 espresso shots';
+      if (mg < 200) return 'Double shot latte';
+      if (mg < 280) return 'Cold brew';
+      if (mg < 350) return 'Strong cold brew';
+      return 'Consider splitting doses';
+    }
+
+    function getGrade(score) {
+      if (score >= 95) return 'A+';
+      if (score >= 90) return 'A';
+      if (score >= 85) return 'A-';
+      if (score >= 80) return 'B+';
+      if (score >= 75) return 'B';
+      if (score >= 70) return 'B-';
+      if (score >= 65) return 'C+';
+      if (score >= 60) return 'C';
+      if (score >= 55) return 'C-';
+      return 'D';
+    }
+
+    // ─── STATE MANAGEMENT ───
+    let analysisData = getAnalysis();
+
+    function runAnalysis() {
+      analysisData = getAnalysis();
+      updateUI(analysisData);
+      updateCharts(analysisData);
+    }
+
+    // ─── UI UPDATE ───
+    function updateUI(d) {
+      // Meter
+      drawMeter(d.rawFocus);
+      document.getElementById('meterNum').textContent = d.rawFocus;
+
+      // Warnings
+      const warningBanner = document.getElementById('warningBanner');
+      if (d.warnings.length > 0) {
+        const warning = d.warnings[0]; // Show first warning
+        document.getElementById('warningTitle').textContent = warning.title;
+        document.getElementById('warningText').textContent = warning.text;
+        warningBanner.classList.add('show');
+      } else {
+        warningBanner.classList.remove('show');
+      }
+
+      // Cards
+      document.getElementById('optCaff').textContent = d.optCaff + 'mg';
+      document.getElementById('optCaffSub').textContent = d.cafLabel;
+      document.getElementById('prodRating').textContent = d.grade;
+      document.getElementById('prodRating').style.color = d.gradeColor;
+      document.getElementById('prodSub').textContent = d.gradeSub;
+      document.getElementById('studyWindow').textContent = d.studyWindow + 'h';
+      document.getElementById('studyWindowSub').textContent = d.studyWindow >= 4 ? 'Extended session' : d.studyWindow >= 2 ? 'Good block' : 'Short burst';
+      document.getElementById('burnoutRisk').textContent = d.burnoutLabel;
+      document.getElementById('burnoutRisk').style.color = d.burnoutColor;
+      document.getElementById('burnoutSub').textContent = d.burnoutRaw < 30 ? 'You\'re stable' : d.burnoutRaw < 55 ? 'Monitor intake' : 'Ease up ASAP';
+      document.getElementById('burnoutBar').style.width = d.burnoutRaw + '%';
+      document.getElementById('burnoutPct').textContent = d.burnoutRaw + '%';
+
+      // Quip
+      document.getElementById('quipBox').textContent = '"' + d.quip + '"';
+
+      // Stats
+      document.getElementById('rSquared').textContent = 'r² = ' + d.rSq.toFixed(2);
+      document.getElementById('sleepImpact').textContent = d.sleepDeficit === 0 ? 'Optimal sleep ✓' : '−' + d.sleepPenalty.toFixed(1) + '% total';
+      document.getElementById('stressRisk').textContent = d.stressRisk;
+      document.getElementById('stressRisk').style.color = d.stressRiskColor;
+      document.getElementById('predScore').textContent = 'Score: ' + d.grade + ' (' + d.rawFocus + '/100)';
+      document.getElementById('energyStab').textContent = d.energyStab;
+      document.getElementById('breakTime').textContent = 'Every ' + d.breakInterval + ' min';
+    }
+
+    // ─── RADIAL METER ───
+    function drawMeter(val) {
+      const c = document.getElementById('meterCanvas');
+      const ctx = c.getContext('2d');
+      ctx.clearRect(0, 0, 160, 160);
+      const cx = 80, cy = 80, r = 65;
+      const startAngle = -Math.PI * 1.2;
+      const endAngle = Math.PI * 0.2;
+      const filled = startAngle + (val / 100) * (endAngle - startAngle + 2 * Math.PI);
+
+      // BG arc
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, startAngle, endAngle + 2 * Math.PI);
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+      ctx.lineWidth = 10;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+
+      // Color gradient
+      const g = ctx.createLinearGradient(0, 0, 160, 160);
+      if (val < 40) {
+        g.addColorStop(0, '#ef4444');
+        g.addColorStop(1, '#f59e0b');
+      } else if (val < 70) {
+        g.addColorStop(0, '#f59e0b');
+        g.addColorStop(1, '#a855f7');
+      } else {
+        g.addColorStop(0, '#a855f7');
+        g.addColorStop(1, '#10b981');
+      }
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, startAngle, filled);
+      ctx.strokeStyle = g;
+      ctx.lineWidth = 10;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+
+      // Glow dot
+      const ang = filled;
+      ctx.beginPath();
+      ctx.arc(cx + r * Math.cos(ang), cy + r * Math.sin(ang), 5, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff';
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = '#a855f7';
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+
+    // ─── CHARTS ───
+    let corrChartInst, gaugeChartInst, waveChartInst;
+
+    function buildCharts() {
+      // CORRELATION CHART
+      const corrCtx = document.getElementById('corrChart').getContext('2d');
+      const corrData = [];
+
+      // Generate realistic caffeine-focus curve
+      for (let c = 0; c <= 400; c += 15) {
+        // Inverted U-curve: optimal around 100-200mg
+        const optimal = 150;
+        const distance = Math.abs(c - optimal);
+        const val = Math.max(10, 85 - (distance * distance) / 600 + (Math.random() - 0.5) * 10);
+        corrData.push({ x: c, y: Math.min(100, Math.max(0, Math.round(val))) });
+      }
+
+      corrChartInst = new Chart(corrCtx, {
+        type: 'scatter',
+        data: {
+          datasets: [{
+            label: 'Caffeine vs Focus',
+            data: corrData,
+            borderColor: '#a855f7',
+            backgroundColor: 'rgba(168,85,247,0.3)',
+            pointRadius: 4,
+            pointHoverRadius: 6,
+          }, {
+            label: 'Trend',
+            data: [{ x: 0, y: 25 }, { x: 100, y: 75 }, { x: 200, y: 80 }, { x: 300, y: 60 }, { x: 400, y: 35 }],
+            type: 'line',
+            borderColor: '#3b82f6',
+            borderWidth: 2,
+            borderDash: [4, 4],
+            pointRadius: 0,
+            fill: false,
+            tension: 0.4,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: p => `${p.dataset.label}: (${p.parsed.x}mg, ${p.parsed.y}%)`
+              }
+            }
+          },
+          scales: {
+            x: {
+              title: { display: true, text: 'Caffeine (mg)', color: '#64748b', font: { size: 11 } },
+              grid: { color: 'rgba(255,255,255,0.03)' },
+              ticks: { color: '#64748b', font: { size: 10 } }
+            },
+            y: {
+              title: { display: true, text: 'Focus Score', color: '#64748b', font: { size: 11 } },
+              grid: { color: 'rgba(255,255,255,0.03)' },
+              ticks: { color: '#64748b', font: { size: 10 } },
+              min: 0,
+              max: 100
+            }
+          }
+        }
+      });
+
+      // GAUGE/DOUGHNUT
+      const gaugeCtx = document.getElementById('gaugeChart').getContext('2d');
+      gaugeChartInst = new Chart(gaugeCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Focus', 'Stress Impact', 'Sleep Debt', 'Recovery'],
+          datasets: [{
+            data: [40, 20, 25, 15],
+            backgroundColor: ['rgba(168,85,247,0.8)', 'rgba(236,72,153,0.7)', 'rgba(59,130,246,0.7)', 'rgba(16,185,129,0.7)'],
+            borderColor: ['rgba(168,85,247,0.3)', 'rgba(236,72,153,0.3)', 'rgba(59,130,246,0.3)', 'rgba(16,185,129,0.3)'],
+            borderWidth: 1,
+            hoverOffset: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '65%',
+          plugins: {
+            legend: { position: 'bottom', labels: { color: '#64748b', font: { size: 11 }, boxWidth: 12, padding: 8 } },
+            tooltip: { callbacks: { label: p => `${p.label}: ${p.parsed}%` } }
+          }
+        }
+      });
+
+      // WAVEFORM
+      const waveCtx = document.getElementById('waveChart').getContext('2d');
+      const hours = Array.from({ length: 25 }, (_, i) => i % 12 === 0 ? '12pm' : i % 12 + 'h');
+
+      waveChartInst = new Chart(waveCtx, {
+        type: 'line',
+        data: {
+          labels: hours,
+          datasets: [
+            { label: 'Caffeine', data: [], borderColor: '#a855f7', borderWidth: 2, pointRadius: 0, fill: true, backgroundColor: 'rgba(168,85,247,0.05)', tension: 0.4 },
+            { label: 'Focus', data: [], borderColor: '#3b82f6', borderWidth: 2, pointRadius: 0, fill: true, backgroundColor: 'rgba(59,130,246,0.05)', tension: 0.4 },
+            { label: 'Energy', data: [], borderColor: '#f59e0b', borderWidth: 2, pointRadius: 0, fill: true, backgroundColor: 'rgba(245,158,11,0.05)', tension: 0.4 },
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#64748b', font: { size: 10 }, maxRotation: 0 } },
+            y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#64748b', font: { size: 10 } }, min: 0, max: 100 }
+          },
+          interaction: { mode: 'index', intersect: false }
+        }
+      });
+    }
+
+    function updateCharts(d) {
+      if (!corrChartInst) return;
+
+      // Update gauge
+      const f = d.rawFocus;
+      const sImp = Math.round(d.stress * 7);
+      const slD = Math.round(d.sleepPenalty);
+      const rec = Math.max(5, 100 - f - sImp - slD);
+      const norm = f + sImp + slD + rec;
+      gaugeChartInst.data.datasets[0].data = [
+        Math.round(f / norm * 100),
+        Math.round(sImp / norm * 100),
+        Math.round(slD / norm * 100),
+        Math.round(rec / norm * 100)
+      ];
+      gaugeChartInst.update('none');
+
+      // Update waveform - simulate caffeine decay and energy curve
+      const waveData = generateEnergyWaveform(d);
+      waveChartInst.data.datasets[0].data = waveData.caffeine;
+      waveChartInst.data.datasets[1].data = waveData.focus;
+      waveChartInst.data.datasets[2].data = waveData.energy;
+      waveChartInst.update('none');
+    }
+
+    function generateEnergyWaveform(d) {
+      const caffeine = [];
+      const focus = [];
+      const energy = [];
+
+      // Starting point based on current state
+      let currentCaffeine = (d.caffeine / 400) * 100;
+      let currentFocus = d.rawFocus;
+      let currentEnergy = d.rawFocus;
+
+      for (let hour = 0; hour < 25; hour++) {
+        // Caffeine decay (half-life)
+        currentCaffeine *= Math.pow(0.5, 1 / CAFFEINE_HALF_LIFE);
+        caffeine.push(Math.max(0, Math.round(currentCaffeine)));
+
+        // Focus decay with caffeine
+        currentFocus = currentFocus * 0.92 + currentCaffeine * 0.3;
+        focus.push(Math.max(10, Math.min(100, Math.round(currentFocus))));
+
+        // Energy follows focus but with circadian rhythm
+        const circadianBoost = hour < 6 ? -10 : hour < 12 ? 5 : hour < 18 ? 0 : -15;
+        currentEnergy = currentFocus + circadianBoost + (Math.random() - 0.5) * 5;
+        energy.push(Math.max(5, Math.min(100, Math.round(currentEnergy))));
+      }
+
+      return { caffeine, focus, energy };
+    }
+
+    // ─── TRIGGER ANALYSIS (with loading) ───
+    function triggerAnalysis() {
+      const overlay = document.getElementById('loadingOverlay');
+      const steps = [
+        'Analyzing sleep-adenosine correlation...',
+        'Running caffeine regression model...',
+        'Computing burnout probability matrix...',
+        'Calibrating focus prediction algorithm...',
+        'Checking FDA safety thresholds...'
+      ];
+      let i = 0;
+      overlay.classList.add('active');
+      const stepEl = document.getElementById('loadingStep');
+      const interval = setInterval(() => {
+        stepEl.textContent = steps[i % steps.length];
+        i++;
+      }, 500);
+
+      setTimeout(() => {
+        clearInterval(interval);
+        overlay.classList.remove('active');
+        runAnalysis();
+        const toast = document.getElementById('toast');
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3000);
+        document.getElementById('resultsPanel').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 2500);
+    }
+
+    // ─── REVEAL ON SCROLL ───
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) e.target.classList.add('visible');
+      });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // ─── INIT ───
+    window.addEventListener('load', () => {
+      drawMeter(67);
+      buildCharts();
+      runAnalysis();
+    });
+</script>
+</body>
+</html>
